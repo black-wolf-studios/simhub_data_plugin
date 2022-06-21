@@ -91,12 +91,24 @@ namespace BigBl4ckW0lf.GamePlugin
         private void CalculateFuelStrategyData(PluginSettings settings)
         {
             var fuelLeft = (double)_pluginManager.GetPropertyValue("DataCorePlugin.GameData.Fuel");
-            var avgConsumption = PluginState.GetInstance().LastLaps.Select((data) => data.FuelUsed).Sum() /
-                                 PluginState.GetInstance().LastLaps.Count;
+            var consumptions = PluginState.GetInstance().LastLaps.Select((data) => data.FuelUsed)
+                .Where((fuelUsed) => fuelUsed > 0).ToList();
+            var avgConsumption = (double)_pluginManager.GetPropertyValue("DataCorePlugin.GameData.AverageFuelUsage"); //TODO: use correct field
+            if (consumptions.Count > 1)
+            {
+                avgConsumption = consumptions.Sum() / consumptions.Count;
+            }
+            
             var fuelLapsLeft = fuelLeft / avgConsumption;
-            var fuelTimeLeft = fuelLapsLeft *
-                               (PluginState.GetInstance().LastLaps.Select((data) => data.LapTime.TotalSeconds).Sum() /
-                                PluginState.GetInstance().LastLaps.Count);
+            
+            var lapTimesAsSeconds = PluginState.GetInstance().LastLaps.Select((data) => data.LapTime.TotalSeconds)
+                .Where((seconds) => seconds > 1).ToList();
+            var fuelTimeLeft = (double)_pluginManager.GetPropertyValue("DataCorePlugin.GameData.FuelTimeLeft"); //TODO: use correct field
+            if (lapTimesAsSeconds.Count > 1)
+            {
+                fuelTimeLeft = fuelLapsLeft * (lapTimesAsSeconds.Sum() / lapTimesAsSeconds.Count);
+            }
+            
             var refuel = CalculateRefuel(_pluginManager, avgConsumption, settings);
 
             UpdateProperty(PropertyNames.AverageFuelPerLap, avgConsumption);
